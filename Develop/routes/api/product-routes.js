@@ -10,15 +10,10 @@ const handleErrors = (res, err) => {
 // GET all products with associated Category and Tag data
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.findAll({
-      include: [Category, Tag],
+    const productData = await Product.findAll({
+      include: [{ model: Category }, { model: Tag }],
     });
-
-    if (products.length === 0) {
-      return res.status(404).json({ message: 'No products found' });
-    }
-
-    return res.json(products);
+    res.status(200).json(productData);
   } catch (err) {
     handleErrors(res, err);
   }
@@ -27,15 +22,15 @@ router.get('/', async (req, res) => {
 // GET one product by its `id` value with associated Category and Tag data
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id, {
-      include: [Category, Tag],
+    const productData = await Product.findByPk(req.params.id, {
+      include: [{ model: Category }, { model: Tag }],
     });
 
-    if (!product) {
+    if (!productData) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    return res.json(product);
+    return res.json(productData);
   } catch (err) {
     handleErrors(res, err);
   }
@@ -43,37 +38,52 @@ router.get('/:id', async (req, res) => {
 
 // POST create a new product
 router.post('/', async (req, res) => {
-  try {
-    const product = await Product.create(req.body);
-
-    if (req.body.tagIds && req.body.tagIds.length) {
-      const productTagIdArr = req.body.tagIds.map((tag_id) => ({
-        product_id: product.id,
-        tag_id,
-      }));
-      await ProductTag.bulkCreate(productTagIdArr);
+    /* req.body should look like this...
+    {
+      product_name: "Basketball",
+      price: 200.00,
+      stock: 3,
+      tagIds: [1, 2, 3, 4]
     }
-
-    return res.status(201).json(product);
-  } catch (err) {
-    handleErrors(res, err);
-  }
-});
+  */
+  Product.create({
+    .then((product) => {
+      if(req.body.tagIds.length) {
+        const productTagIdArr = req.body.tagIds.map((tag_id) => {
+          return {
+            product_id: product.id,
+            tag_id,
+          };
+        });
+        return ProductTag.bulkCreate(productTagIdArr);
+      }
+      res.status(200).json(product);
+    })
+    .then((productTagIds) => res.status(200).json(productTagIds))
+    .catch((err) => {
+      handleErrors(res, err);
+    })
+  });
 
 // PUT update product by its `id` value
 router.put('/:id', async (req, res) => {
   try {
-    const [updatedProductCount] = await Product.update(req.body, {
-      where: { id: req.params.id },
-    });
+    const [updatedProductCount] = await Product.update(
+      {
+        product_name: req.body.product_name,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
 
     if (updatedProductCount === 0) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // ... (tag updates logic)
-
-    return res.status(200).json({ message: 'Product updated successfully' });
+    res.status(200).json({ message: 'Product updated successfully' });
   } catch (err) {
     handleErrors(res, err);
   }
@@ -83,7 +93,9 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const deletedProductCount = await Product.destroy({
-      where: { id: req.params.id },
+      where: {
+        id: req.params.id,
+      },
     });
 
     if (deletedProductCount === 0) {
