@@ -4,15 +4,11 @@ const { Tag, Product } = require('../../models');
 // GET all tags with associated Product data
 router.get('/', async (req, res) => {
   try {
-    const tags = await Tag.findAll({
-      include: [Product],
+    const tagsData = await Tag.findAll({
+      include: [{ model: Product }],
     });
 
-    if (tags.length === 0) {
-      return res.status(404).send('No tags found');
-    }
-
-    return res.json(tags);
+    res.status(200).json(tagsData);
   } catch (err) {
     console.error(err);
     return res.status(500).send('Internal server error');
@@ -25,38 +21,37 @@ router.get('/:name', async (req, res) => {
     const tagName = req.params.name;
     const tag = await Tag.findOne({
       where: { tag_name: tagName },
-      include: [Product],
+      include: [{ model: Product }],
     });
 
     if (!tag) {
-      return res.status(404).send('Tag not found');
+      return res.status(404).json({ message: 'Tag not found' });
     }
 
     return res.json(tag);
   } catch (err) {
     console.error(err);
-    return res.status(500).send('Internal server error');
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET one tag by its `id` with associated Product data
 router.get('/id/:id', async (req, res) => {
   try {
-    const tagId = req.params.id;
-    const tag = await Tag.findByPk(tagId, {
-      include: [Product],
-    });
-
-    if (!tag) {
-      return res.status(404).send('Tag not found');
-    }
-
-    return res.json(tag);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send('Internal server error');
+    const tagData = await Tag.findByPk(req.params.id, {
+      include: [{ model: Product}],
+  
+  });
+  if (!tagData) {
+  res.status(404).json({ message: 'Tag not found' });
+  return;
   }
-});
+  
+  res.status(200).json(tagData);
+  } catch (err) {
+  res.status(500).json(err);
+  }
+  });
 
 // POST create a new tag
 router.post('/', async (req, res) => {

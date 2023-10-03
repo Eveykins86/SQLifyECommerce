@@ -38,39 +38,44 @@ router.get('/:id', async (req, res) => {
 
 // POST create a new product
 router.post('/', async (req, res) => {
-    /* req.body should look like this...
-    {
-      product_name: "Basketball",
-      price: 200.00,
-      stock: 3,
-      tagIds: [1, 2, 3, 4]
+  try {
+    // Create the product and get its ID
+    const product = await Product.create({
+      product_name: req.body.product_name,
+      price: req.body.price,
+      stock: req.body.stock,
+    });
+
+    // Check if tagIds were provided and the product was created
+    if (req.body.tagIds && product) {
+      // Create an array of objects to insert into the product_tag table
+      const productTagIdArr = req.body.tagIds.map((tagId) => ({
+        product_id: product.id,
+        tag_id: tagId,
+      }));
+
+      // Bulk insert the product_tag associations
+      await ProductTag.bulkCreate(productTagIdArr);
     }
-  */
-  Product.create({
-    .then((product) => {
-      if(req.body.tagIds.length) {
-        const productTagIdArr = req.body.tagIds.map((tag_id) => {
-          return {
-            product_id: product.id,
-            tag_id,
-          };
-        });
-        return ProductTag.bulkCreate(productTagIdArr);
-      }
-      res.status(200).json(product);
-    })
-    .then((productTagIds) => res.status(200).json(productTagIds))
-    .catch((err) => {
-      handleErrors(res, err);
-    })
-  });
+
+    // Send a success response with the newly created product
+    res.status(201).json(product);
+  } catch (err) {
+    // Handle any errors that occur during the process
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // PUT update product by its `id` value
 router.put('/:id', async (req, res) => {
   try {
-    const [updatedProductCount] = await Product.update(
+    const productData = await Product.update(
       {
         product_name: req.body.product_name,
+        price: req.body.price,
+        stock: req.body.stock,
+        category_id: req.body.category_id
       },
       {
         where: {
@@ -79,8 +84,8 @@ router.put('/:id', async (req, res) => {
       }
     );
 
-    if (updatedProductCount === 0) {
-      return res.status(404).json({ message: 'Product not found' });
+    if (!productData[0]) {
+      res.status(404).json({ message: 'Product not found' });
     }
 
     res.status(200).json({ message: 'Product updated successfully' });
@@ -92,18 +97,21 @@ router.put('/:id', async (req, res) => {
 // DELETE a product by its `id` value
 router.delete('/:id', async (req, res) => {
   try {
-    const deletedProductCount = await Product.destroy({
+    const productData = await Product.destroy({
       where: {
         id: req.params.id,
       },
     });
 
-    if (deletedProductCount === 0) {
+    if (!productData) {
+      // If no product was deleted, return a 404 status code
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    // If a product was successfully deleted, return a 200 status code
     return res.status(200).json({ message: 'Product deleted successfully' });
   } catch (err) {
+    // Handle any errors that occur during the process
     handleErrors(res, err);
   }
 });
