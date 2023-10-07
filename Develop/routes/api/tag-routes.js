@@ -67,23 +67,26 @@ router.post('/', async (req, res) => {
 // PUT update tag's name by its `id` value
 router.put('/:id', async (req, res) => {
   try {
-    const updatedTagCount = await Tag.update(req.body, {
-      where: { id: req.params.id },
-    });
-
-    if (updatedTagCount[0] === 0) {
-      return res.status(404).send('Tag not found');
+    const tagData = await Tag.update(req.body, 
+    {
+      where: {
+        id: req.params.id,
+      },
     }
+  );
 
-    return res.status(200).json({ message: 'Tag updated successfully' });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send('Internal server error');
+  if (!tagData[0]) {
+    return res.status(404).send('Tag not found');
   }
+
+  res.status(200).json({ message: 'Tag updated successfully' });
+} catch (err) {
+  res.status(500).json(err);
+}
 });
 
 // DELETE a tag by its `id` value
-router.delete('/:id', async (req, res) => {
+router.delete('/id/:id', async (req, res) => {
   try {
     const deletedTagCount = await Tag.destroy({
       where: { id: req.params.id },
