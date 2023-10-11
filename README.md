@@ -24,7 +24,10 @@ Use GET, POST, PUT, and DELETE to update the e-commerce application in insomnia.
 Message me if you would like to colaborate on making this application even more awesome!
 
 ## Tests
-None
+
+Her is a link to a walkthrough of how the application works.
+
+https://watch.screencastify.com/v/yqaAvfDqfOVyvL42WxUo
 
 ## License
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
